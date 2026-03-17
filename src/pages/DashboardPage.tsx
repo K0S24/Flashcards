@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import DecksPage from './DecksPage'
+import CardsPage from './CardsPage'
 import type { Deck } from '../hooks/useDecks'
 
 interface Props {
@@ -10,13 +11,14 @@ interface Props {
 
 export default function DashboardPage({ user, onSignOut }: Props) {
   const [selectedDeck, setSelectedDeck] = useState<Deck | null>(null)
+  const [studying, setStudying] = useState(false)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h1
           className="text-lg font-medium text-gray-900 cursor-pointer"
-          onClick={() => setSelectedDeck(null)}
+          onClick={() => { setSelectedDeck(null); setStudying(false) }}
         >
           Flashcards
         </h1>
@@ -31,7 +33,15 @@ export default function DashboardPage({ user, onSignOut }: Props) {
         </div>
       </header>
 
-      <DecksPage user={user} onSelectDeck={setSelectedDeck} />
+      {!selectedDeck ? (
+        <DecksPage user={user} onSelectDeck={setSelectedDeck} />
+      ) : (
+        <CardsPage
+          deck={selectedDeck}
+          onBack={() => setSelectedDeck(null)}
+          onStudy={() => setStudying(true)}
+        />
+      )}
     </div>
   )
 }
