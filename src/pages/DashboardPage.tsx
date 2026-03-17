@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import DecksPage from './DecksPage'
 import CardsPage from './CardsPage'
+import StudyPage from './StudyPage'
 import type { Deck } from '../hooks/useDecks'
 
 interface Props {
@@ -35,6 +36,11 @@ export default function DashboardPage({ user, onSignOut }: Props) {
 
       {!selectedDeck ? (
         <DecksPage user={user} onSelectDeck={setSelectedDeck} />
+      ) : studying ? (
+        <StudyPage
+          deck={selectedDeck}
+          onBack={() => setStudying(false)}
+        />
       ) : (
         <CardsPage
           deck={selectedDeck}
