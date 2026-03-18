@@ -1,10 +1,43 @@
 import { useState } from 'react'
 import { useDecks, type Deck } from '../hooks/useDecks'
+import { useCards } from '../hooks/useCards'
+import { isDue } from '../lib/srs'
 import type { User } from '@supabase/supabase-js'
 
 interface Props {
   user: User
   onSelectDeck: (deck: Deck) => void
+}
+
+function DeckCard({ deck, onSelect, onDelete }: { deck: Deck, onSelect: () => void, onDelete: () => void }) {
+  const { cards } = useCards(deck.id)
+  const dueCount = cards.filter(c => isDue(c.next_review)).length
+
+  return (
+    <div
+      className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between hover:border-indigo-300 transition-colors cursor-pointer"
+      onClick={onSelect}
+    >
+      <div>
+        <p className="font-medium text-gray-900">{deck.name}</p>
+        {deck.description && (
+          <p className="text-sm text-gray-500 mt-0.5">{deck.description}</p>
+        )}
+        <div className="flex gap-3 mt-2">
+          <span className="text-xs text-gray-400">{cards.length} cards</span>
+          {dueCount > 0 && (
+            <span className="text-xs text-indigo-600 font-medium">{dueCount} due</span>
+          )}
+        </div>
+      </div>
+      <button
+        onClick={e => { e.stopPropagation(); onDelete() }}
+        className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded"
+      >
+        Delete
+      </button>
+    </div>
+  )
 }
 
 export default function DecksPage({ user, onSelectDeck }: Props) {
@@ -84,24 +117,12 @@ export default function DecksPage({ user, onSelectDeck }: Props) {
       ) : (
         <div className="space-y-3">
           {decks.map(deck => (
-            <div
+            <DeckCard
               key={deck.id}
-              className="bg-white border border-gray-200 rounded-xl p-5 flex items-center justify-between hover:border-indigo-300 transition-colors cursor-pointer"
-              onClick={() => onSelectDeck(deck)}
-            >
-              <div>
-                <p className="font-medium text-gray-900">{deck.name}</p>
-                {deck.description && (
-                  <p className="text-sm text-gray-500 mt-0.5">{deck.description}</p>
-                )}
-              </div>
-              <button
-                onClick={e => { e.stopPropagation(); deleteDeck(deck.id) }}
-                className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded"
-              >
-                Delete
-              </button>
-            </div>
+              deck={deck}
+              onSelect={() => onSelectDeck(deck)}
+              onDelete={() => deleteDeck(deck.id)}
+            />
           ))}
         </div>
       )}
