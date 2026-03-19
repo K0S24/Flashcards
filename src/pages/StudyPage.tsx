@@ -3,13 +3,15 @@ import { supabase } from '../lib/supabase'
 import { getNextReview, isDue, SRS_LABELS, SRS_COLORS, SRS_TIMES, type SRSRating } from '../lib/srs'
 import type { Deck } from '../hooks/useDecks'
 import type { Card } from '../hooks/useCards'
+import type { User } from '@supabase/supabase-js'
 
 interface Props {
   deck: Deck
+  user: User
   onBack: () => void
 }
 
-export default function StudyPage({ deck, onBack }: Props) {
+export default function StudyPage({ deck, user, onBack }: Props) {
   const [queue, setQueue] = useState<Card[]>([])
   const [total, setTotal] = useState(0)
   const [current, setCurrent] = useState<Card | null>(null)
@@ -43,6 +45,14 @@ export default function StudyPage({ deck, onBack }: Props) {
       .from('cards')
       .update({ next_review: nextReview })
       .eq('id', current.id)
+
+    // Lernhistorie speichern
+    await supabase.from('study_logs').insert({
+      user_id: user.id,
+      card_id: current.id,
+      deck_id: deck.id,
+      rating,
+    })
 
     if (rating === 'perfect') {
       const remaining = queue.filter(c => c.id !== current.id)

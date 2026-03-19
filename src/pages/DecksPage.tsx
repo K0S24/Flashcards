@@ -9,9 +9,60 @@ interface Props {
   onSelectDeck: (deck: Deck) => void
 }
 
-function DeckCard({ deck, onSelect, onDelete }: { deck: Deck, onSelect: () => void, onDelete: () => void }) {
+function DeckCard({ deck, onSelect, onDelete, onUpdate }: {
+  deck: Deck
+  onSelect: () => void
+  onDelete: () => void
+  onUpdate: (name: string, description: string) => void
+}) {
   const { cards } = useCards(deck.id)
   const dueCount = cards.filter(c => isDue(c.next_review)).length
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(deck.name)
+  const [editDescription, setEditDescription] = useState(deck.description)
+
+  function handleSave() {
+    if (!editName.trim()) return
+    onUpdate(editName.trim(), editDescription.trim())
+    setEditing(false)
+  }
+
+  if (editing) {
+    return (
+      <div className="bg-white border border-indigo-300 rounded-xl p-5">
+        <div className="mb-3">
+          <label className="block text-xs text-gray-500 mb-1">Name</label>
+          <input
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            value={editName}
+            onChange={e => setEditName(e.target.value)}
+          />
+        </div>
+        <div className="mb-3">
+          <label className="block text-xs text-gray-500 mb-1">Description</label>
+          <input
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            value={editDescription}
+            onChange={e => setEditDescription(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSave}
+            className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700"
+          >
+            Save
+          </button>
+          <button
+            onClick={() => setEditing(false)}
+            className="text-xs text-gray-500 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -30,18 +81,26 @@ function DeckCard({ deck, onSelect, onDelete }: { deck: Deck, onSelect: () => vo
           )}
         </div>
       </div>
-      <button
-        onClick={e => { e.stopPropagation(); onDelete() }}
-        className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded"
-      >
-        Delete
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={e => { e.stopPropagation(); setEditing(true) }}
+          className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded"
+        >
+          Edit
+        </button>
+        <button
+          onClick={e => { e.stopPropagation(); onDelete() }}
+          className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded"
+        >
+          Delete
+        </button>
+      </div>
     </div>
   )
 }
 
 export default function DecksPage({ user, onSelectDeck }: Props) {
-  const { decks, loading, createDeck, deleteDeck } = useDecks(user.id)
+  const { decks, loading, createDeck, updateDeck, deleteDeck } = useDecks(user.id)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
@@ -122,6 +181,7 @@ export default function DecksPage({ user, onSelectDeck }: Props) {
               deck={deck}
               onSelect={() => onSelectDeck(deck)}
               onDelete={() => deleteDeck(deck.id)}
+              onUpdate={(name, desc) => updateDeck(deck.id, name, desc)}
             />
           ))}
         </div>

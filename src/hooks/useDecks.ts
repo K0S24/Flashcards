@@ -37,10 +37,15 @@ export function useDecks(userId: string) {
     return null
   }
 
+  async function updateDeck(id: string, name: string, description: string): Promise<void> {
+    await supabase.from('decks').update({ name, description }).eq('id', id)
+    await loadDecks()
+  }
+
   async function deleteDeck(id: string): Promise<void> {
     await supabase.from('decks').delete().eq('id', id)
     await loadDecks()
   }
 
-  return { decks, loading, createDeck, deleteDeck }
+  return { decks, loading, createDeck, updateDeck, deleteDeck }
 }
