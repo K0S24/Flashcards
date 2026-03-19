@@ -11,6 +11,7 @@ interface Props {
 
 export default function StudyPage({ deck, onBack }: Props) {
   const [queue, setQueue] = useState<Card[]>([])
+  const [total, setTotal] = useState(0)
   const [current, setCurrent] = useState<Card | null>(null)
   const [flipped, setFlipped] = useState(false)
   const [done, setDone] = useState(false)
@@ -28,6 +29,7 @@ export default function StudyPage({ deck, onBack }: Props) {
       .eq('deck_id', deck.id)
     const due = (data || []).filter(c => isDue(c.next_review))
     setQueue(due)
+    setTotal(due.length)
     setCurrent(due[0] || null)
     if (due.length === 0) setDone(true)
     setLoading(false)
@@ -43,7 +45,6 @@ export default function StudyPage({ deck, onBack }: Props) {
       .eq('id', current.id)
 
     if (rating === 'perfect') {
-      // Karte aus Queue entfernen
       const remaining = queue.filter(c => c.id !== current.id)
       if (remaining.length === 0) {
         setDone(true)
@@ -53,7 +54,6 @@ export default function StudyPage({ deck, onBack }: Props) {
         setFlipped(false)
       }
     } else {
-      // Karte hinten in Queue stellen
       const updated = { ...current, next_review: nextReview }
       const remaining = queue.filter(c => c.id !== current.id)
       const newQueue = [...remaining, updated]
@@ -87,14 +87,24 @@ export default function StudyPage({ deck, onBack }: Props) {
     )
   }
 
+  const reviewed = total - queue.length
+
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700">
           ← Back
         </button>
         <h2 className="text-xl font-medium text-gray-900 flex-1">{deck.name}</h2>
-        <span className="text-sm text-gray-400">{queue.length} cards left</span>
+        <span className="text-sm text-gray-400">{reviewed}/{total}</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="w-full bg-gray-100 rounded-full h-1.5 mb-6">
+        <div
+          className="bg-indigo-500 h-1.5 rounded-full transition-all"
+          style={{ width: `${total > 0 ? (reviewed / total) * 100 : 0}%` }}
+        />
       </div>
 
       {/* Card */}
