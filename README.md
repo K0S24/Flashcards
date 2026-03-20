@@ -12,10 +12,10 @@ A spaced repetition flashcard app to help you learn and retain knowledge effecti
 ## Features
 
 - [x] Authentication (sign up / sign in / sign out)
-- [ ] Decks (create, edit, delete)
-- [ ] Cards (create, edit, delete)
-- [ ] Study mode with SRS (3min / 7min / 10min / 1 day)
-- [ ] Statistics & progress tracking
+- [x] Decks (create, edit, delete)
+- [x] Cards (create, edit, delete)
+- [x] Study mode with SRS (3min / 7min / 10min / 1 day)
+- [x] Statistics & progress tracking
 
 ## SRS Intervals
 
