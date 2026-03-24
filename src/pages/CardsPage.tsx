@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useCards, type Card } from '../hooks/useCards'
+import { exportDeckAsCSV, parseCSV } from '../lib/csv'
 import type { Deck } from '../hooks/useDecks'
 
 interface Props {
@@ -18,6 +19,8 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
+  const [importing, setImporting] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleCreate() {
     if (!question.trim() || !answer.trim()) { setError('Please fill in all fields.'); return }
@@ -32,6 +35,23 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
     if (!editingCard) return
     await updateCard(editingCard.id, editQuestion, editAnswer)
     setEditingCard(null)
+  }
+
+  function handleExport() {
+    exportDeckAsCSV(deck.name, cards)
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    const text = await file.text()
+    const parsed = parseCSV(text)
+    for (const card of parsed) {
+      await createCard(card.question, card.answer)
+    }
+    setImporting(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   return (
@@ -49,6 +69,26 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
             Study
           </button>
         )}
+        <button
+          onClick={handleExport}
+          className="text-sm bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50"
+        >
+          Export CSV
+        </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          className="text-sm bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        >
+          {importing ? 'Importing...' : 'Import CSV'}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleImport}
+          className="hidden"
+        />
         <button
           onClick={() => setShowForm(!showForm)}
           className="text-sm bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50"
@@ -101,7 +141,7 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
         <p className="text-sm text-gray-400">Loading...</p>
       ) : cards.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No cards yet. Create your first card!</p>
+          <p className="text-sm">No cards yet. Create your first card or import a CSV!</p>
         </div>
       ) : (
         <div className="space-y-3">
