@@ -13,27 +13,29 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
   const { cards, loading, createCard, deleteCard, updateCard } = useCards(deck.id)
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
+  const [mode, setMode] = useState<'flip' | 'type'>('flip')
   const [error, setError] = useState('')
   const [creating, setCreating] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [editQuestion, setEditQuestion] = useState('')
   const [editAnswer, setEditAnswer] = useState('')
+  const [editMode, setEditMode] = useState<'flip' | 'type'>('flip')
   const [importing, setImporting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleCreate() {
     if (!question.trim() || !answer.trim()) { setError('Please fill in all fields.'); return }
     setCreating(true)
-    const err = await createCard(question.trim(), answer.trim())
+    const err = await createCard(question.trim(), answer.trim(), mode)
     if (err) setError(err)
-    else { setQuestion(''); setAnswer(''); setShowForm(false) }
+    else { setQuestion(''); setAnswer(''); setMode('flip'); setShowForm(false) }
     setCreating(false)
   }
 
   async function handleUpdate() {
     if (!editingCard) return
-    await updateCard(editingCard.id, editQuestion, editAnswer)
+    await updateCard(editingCard.id, editQuestion, editAnswer, editMode)
     setEditingCard(null)
   }
 
@@ -52,6 +54,25 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
     }
     setImporting(false)
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function ModeToggle({ value, onChange }: { value: 'flip' | 'type', onChange: (v: 'flip' | 'type') => void }) {
+    return (
+      <div className="flex gap-2 mb-3">
+        <button
+          onClick={() => onChange('flip')}
+          className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${value === 'flip' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Flip card
+        </button>
+        <button
+          onClick={() => onChange('type')}
+          className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${value === 'type' ? 'bg-indigo-600 text-white border-indigo-600' : 'text-gray-500 border-gray-200 hover:bg-gray-50'}`}
+        >
+          Type answer
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -99,6 +120,7 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
 
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6">
+          <ModeToggle value={mode} onChange={setMode} />
           <div className="mb-3">
             <label className="block text-xs text-gray-500 mb-1">Question</label>
             <input
@@ -149,6 +171,7 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
             <div key={card.id} className="bg-white border border-gray-200 rounded-xl p-5">
               {editingCard?.id === card.id ? (
                 <div>
+                  <ModeToggle value={editMode} onChange={setEditMode} />
                   <input
                     className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     value={editQuestion}
@@ -178,8 +201,13 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
               ) : (
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{card.question}</p>
-                    <p className="text-sm text-gray-500 mt-1">{card.answer}</p>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-sm font-medium text-gray-900">{card.question}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${card.mode === 'type' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-500'}`}>
+                        {card.mode === 'type' ? 'Type' : 'Flip'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">{card.answer}</p>
                   </div>
                   <div className="flex gap-2 ml-4">
                     <button
@@ -187,6 +215,7 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
                         setEditingCard(card)
                         setEditQuestion(card.question)
                         setEditAnswer(card.answer)
+                        setEditMode(card.mode)
                       }}
                       className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded"
                     >
