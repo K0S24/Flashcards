@@ -89,7 +89,10 @@ function DeckCard({ deck, onSelect, onDelete, onUpdate }: {
           Edit
         </button>
         <button
-          onClick={e => { e.stopPropagation(); onDelete() }}
+          onClick={e => {
+            e.stopPropagation()
+            if (window.confirm(`Delete "${deck.name}" and all its cards?`)) onDelete()
+          }}
           className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded"
         >
           Delete

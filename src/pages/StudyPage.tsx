@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { getNextReview, isDue, SRS_LABELS, SRS_COLORS, SRS_TIMES, type SRSRating } from '../lib/srs'
+import {
+  getNextReview, isDue, computeNextInterval, formatInterval,
+  SRS_LABELS, SRS_COLORS, type SRSRating,
+} from '../lib/srs'
 import type { Deck } from '../hooks/useDecks'
 import type { Card } from '../hooks/useCards'
 import type { User } from '@supabase/supabase-js'
@@ -101,6 +104,26 @@ export default function StudyPage({ deck, user, onBack }: Props) {
     loadDueCards()
   }, [])
 
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (!current || done || loading) return
+      if (current.mode === 'type') return
+
+      if ((e.key === ' ' || e.key === 'Spacebar') && !flipped) {
+        e.preventDefault()
+        setFlipped(true)
+        return
+      }
+
+      if (flipped) {
+        const map: Record<string, SRSRating> = { '1': 'again', '2': 'hard', '3': 'good', '4': 'perfect' }
+        if (map[e.key]) handleRating(map[e.key])
+      }
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [flipped, current, queue, done, loading]) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function loadDueCards() {
     setLoading(true)
     const { data } = await supabase
@@ -117,9 +140,9 @@ export default function StudyPage({ deck, user, onBack }: Props) {
 
   async function handleRating(rating: SRSRating) {
     if (!current) return
-    const nextReview = getNextReview(rating)
+    const { nextReview, interval } = getNextReview(rating, current.interval)
 
-    await supabase.from('cards').update({ next_review: nextReview }).eq('id', current.id)
+    await supabase.from('cards').update({ next_review: nextReview, interval }).eq('id', current.id)
     await supabase.from('study_logs').insert({
       user_id: user.id,
       card_id: current.id,
@@ -134,21 +157,13 @@ export default function StudyPage({ deck, user, onBack }: Props) {
       setCurrent(remaining[0])
       setFlipped(false)
     } else {
-      const updated = { ...current, next_review: nextReview }
+      const updated = { ...current, next_review: nextReview, interval }
       const remaining = queue.filter(c => c.id !== current.id)
       const newQueue = [...remaining, updated]
       setQueue(newQueue)
       setCurrent(newQueue[0])
       setFlipped(false)
     }
-  }
-
-  async function handleTypeCorrect() {
-    await handleRating('perfect')
-  }
-
-  async function handleTypeWrong() {
-    await handleRating('again')
   }
 
   if (loading) return <div className="max-w-2xl mx-auto px-6 py-8"><p className="text-sm text-gray-400">Loading...</p></div>
@@ -190,15 +205,15 @@ export default function StudyPage({ deck, user, onBack }: Props) {
             <p className="text-lg font-medium text-gray-900 text-center mb-6">{current.question}</p>
             <TypeAnswer
               answer={current.answer}
-              onCorrect={handleTypeCorrect}
-              onWrong={handleTypeWrong}
+              onCorrect={() => handleRating('perfect')}
+              onWrong={() => handleRating('again')}
             />
           </div>
         ) : !flipped ? (
-          <div className="text-center cursor-pointer" onClick={() => setFlipped(true)}>
+          <div className="text-center cursor-pointer w-full" onClick={() => setFlipped(true)}>
             <p className="text-xs text-gray-400 mb-4">QUESTION</p>
             <p className="text-lg font-medium text-gray-900">{current?.question}</p>
-            <p className="text-xs text-gray-400 mt-6">Click to reveal answer</p>
+            <p className="text-xs text-gray-400 mt-6">Click to reveal · Space</p>
           </div>
         ) : (
           <div className="text-center w-full">
@@ -213,18 +228,23 @@ export default function StudyPage({ deck, user, onBack }: Props) {
       </div>
 
       {flipped && current?.mode !== 'type' && (
-        <div className="grid grid-cols-4 gap-3">
-          {(['again', 'hard', 'good', 'perfect'] as SRSRating[]).map(rating => (
-            <button
-              key={rating}
-              onClick={() => handleRating(rating)}
-              className={`py-3 rounded-xl text-sm font-medium transition-colors ${SRS_COLORS[rating]}`}
-            >
-              <div>{SRS_LABELS[rating]}</div>
-              <div className="text-xs opacity-60 mt-0.5">{SRS_TIMES[rating]}</div>
-            </button>
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-4 gap-3">
+            {(['again', 'hard', 'good', 'perfect'] as SRSRating[]).map((rating, i) => (
+              <button
+                key={rating}
+                onClick={() => handleRating(rating)}
+                className={`py-3 rounded-xl text-sm font-medium transition-colors ${SRS_COLORS[rating]}`}
+              >
+                <div>{SRS_LABELS[rating]}</div>
+                <div className="text-xs opacity-60 mt-0.5">
+                  {formatInterval(computeNextInterval(current.interval, rating))}
+                </div>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 text-center mt-2">Keys: 1 · 2 · 3 · 4</p>
+        </>
       )}
     </div>
   )

@@ -22,6 +22,7 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
   const [editAnswer, setEditAnswer] = useState('')
   const [editMode, setEditMode] = useState<'flip' | 'type'>('flip')
   const [importing, setImporting] = useState(false)
+  const [search, setSearch] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   async function handleCreate() {
@@ -159,6 +160,17 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
         </div>
       )}
 
+      {!loading && cards.length > 0 && (
+        <div className="mb-4">
+          <input
+            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            placeholder="Search cards..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-gray-400">Loading...</p>
       ) : cards.length === 0 ? (
@@ -167,7 +179,11 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
         </div>
       ) : (
         <div className="space-y-3">
-          {cards.map(card => (
+          {cards.filter(c =>
+            !search.trim() ||
+            c.question.toLowerCase().includes(search.toLowerCase()) ||
+            c.answer.toLowerCase().includes(search.toLowerCase())
+          ).map(card => (
             <div key={card.id} className="bg-white border border-gray-200 rounded-xl p-5">
               {editingCard?.id === card.id ? (
                 <div>
@@ -222,7 +238,9 @@ export default function CardsPage({ deck, onBack, onStudy }: Props) {
                       Edit
                     </button>
                     <button
-                      onClick={() => deleteCard(card.id)}
+                      onClick={() => {
+                        if (window.confirm('Delete this card?')) deleteCard(card.id)
+                      }}
                       className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded"
                     >
                       Delete
