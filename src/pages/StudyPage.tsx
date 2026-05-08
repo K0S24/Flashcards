@@ -230,7 +230,7 @@ export default function StudyPage({ deck, user, onBack }: Props) {
       {flipped && current?.mode !== 'type' && (
         <>
           <div className="grid grid-cols-4 gap-3">
-            {(['again', 'hard', 'good', 'perfect'] as SRSRating[]).map((rating, i) => (
+            {(['again', 'hard', 'good', 'perfect'] as SRSRating[]).map((rating) => (
               <button
                 key={rating}
                 onClick={() => handleRating(rating)}
@@ -238,7 +238,7 @@ export default function StudyPage({ deck, user, onBack }: Props) {
               >
                 <div>{SRS_LABELS[rating]}</div>
                 <div className="text-xs opacity-60 mt-0.5">
-                  {formatInterval(computeNextInterval(current.interval, rating))}
+                  {formatInterval(computeNextInterval(current!.interval, rating))}
                 </div>
               </button>
             ))}
